@@ -1,0 +1,12 @@
+# Grounding commit — Day 2
+
+**Asker:** Kidane Gebremedhin Gidey
+**Date:** 2026-05-07.
+
+---
+
+**Edit:** [`conversion-engine/agent/composer.py`](../../conversion-engine/agent/composer.py) — `class Composer` prompt-template assembly + `_sample_k_candidates` — commit `a3f2c19`.
+
+**One-paragraph explanation:**
+
+> Before Eyobed's explainer, `agent/composer.py` glued the tone-check feedback into the conversation history at whatever position the agent's tool-call observation pattern produced — meaning the feedback could be 4–6 turns deep in the prompt by the time the next composer call happened, and on a 4B-class model the post-training tone prior would silently override it. After understanding that the tool observation has no privileged channel back into the next-token distribution and competes with everything else for finite attention, I made two coordinated changes. **First:** the tone-check feedback now sits in a privileged "address this critique directly" slot immediately preceding the next user turn, with an explicit anchor phrase derived from Eyobed's measurements of which prompt positions actually shift the next-token distribution on a small composer. **Second:** the K-candidate generation in `_sample_k_candidates` no longer samples K times from the same prompt at temperature; it samples once each from K different system-prompt seeds drawn from a 12-prompt bank with the same task content but different stylistic anchoring. This addresses the dominant K-mode-collapse mechanism Eyobed identified — shared system-prompt anchoring, not temperature scarcity — and produces a real diversity surface for the Tenacious Critic to choose across. The first dry-run sweep with the new code shows tone-axis variance up by ~3.4× across K candidates, and the recurrent pitchy drift no longer reproduces on the 30 dry-run prospects that previously triggered it. Per-call logging of (composer-prompt position of tone-check feedback, K-candidate tone-score variance, system-prompt-seed used) was added at the same time, so the four-layer debugging order from Eyobed's explainer is now applicable to production traces, not just to dry-run sweeps. The decision-memo paragraph that referenced the tone-check loop will be revised in a follow-up commit to point at the closure mechanism this fix addresses; the offence-threshold question separately flagged in the memo remains open as adjacent (see `signoff.md` — that is a different question for a different day).
